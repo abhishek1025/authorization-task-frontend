@@ -1,27 +1,13 @@
 "use client"
 
-import {FormEvent, useEffect, useState} from "react";
+import {FormEvent, useEffect, useRef, useState} from "react";
 import {Button, Checkbox, CheckboxChangeEvent, Modal, Select} from "antd";
 import {clientDeleteRequest, clientPostRequest} from "@/utils";
 import {v4 as uuidv4} from "uuid";
 import {toast} from "sonner";
 import {useRouter} from "next/navigation";
 import {useFetchAllOperations, useFetchAllResources, useFetchAllUsers} from "@/hooks";
-
-type PermissionFormState = {
-    userId: string;
-    resource: string;
-    permissions: {
-        id: string;
-        type: "new" | "delete" | "existing";
-    }[];
-    existingPermissions: string[];
-}
-
-type PermissionFormPropsType = {
-    isEdit: boolean,
-    initialData: PermissionFormState
-}
+import {PermissionFormPropsType, PermissionFormState} from "@/interface";
 
 
 export default function PermissionForm(props: PermissionFormPropsType) {
@@ -32,6 +18,7 @@ export default function PermissionForm(props: PermissionFormPropsType) {
         userId: '',
         existingPermissions: []
     }
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [permissionFormState, setPermissionFormState] = useState<PermissionFormState>(emptyFormState);
     const {users} = useFetchAllUsers();
@@ -116,18 +103,22 @@ export default function PermissionForm(props: PermissionFormPropsType) {
 
     }
 
-    const handleAddPermissionSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    const handleAddPermissionSubmit = async () => {
         try {
 
-            e.preventDefault();
+            const {userId, resource, permissions} = permissionFormState;
+
+            if(!userId || !resource || !permissions.length){
+                toast.error("Please fill up the form fields");
+                return;
+            }
 
             let isSuccess = false;
             let res;
 
-            const {userId, resource} = permissionFormState;
 
 
-            for (const permission of permissionFormState.permissions) {
+            for (const permission of permissions) {
 
                 if (permission.type === "existing") continue;
 
@@ -161,7 +152,6 @@ export default function PermissionForm(props: PermissionFormPropsType) {
             }
 
 
-
             if (isSuccess) {
                 toast.success(props.isEdit ? "Permission successfully updated!" : "Permission successfully added!");
 
@@ -169,13 +159,17 @@ export default function PermissionForm(props: PermissionFormPropsType) {
                 router.push("/permissions");
             }
 
-        } catch (e) {
+            handleCancel();
 
+        } catch (e) {
             if (e instanceof Error) {
                 toast.error(e.message);
             }
         } finally {
-            handleCancel();
+            if (props.isEdit) {
+                handleCancel();
+                setPermissionFormState({...props.initialData})
+            }
         }
     }
 
@@ -194,23 +188,24 @@ export default function PermissionForm(props: PermissionFormPropsType) {
         }
     }, [props.initialData]);
 
-
+    
     return (
         <>
             <Button type="primary" onClick={showModal}>
                 {props.isEdit ? "Edit" : "Add"}
             </Button>
-            <Modal title="Add Permission" open={isModalOpen} onCancel={handleCancel} footer={
+            <Modal title={props.isEdit ? "Update Permission" : "Add Permission"} open={isModalOpen}
+                   onCancel={handleCancel} footer={
                 <div className="flex items-center gap-x-2 justify-end">
                     <Button htmlType="button" type="default" onClick={handleCancel}>
                         Cancel
                     </Button>
-                    <Button htmlType="submit" type="primary" form="add-permission-form">
+                    <Button type="primary" onClick={handleAddPermissionSubmit}>
                         {props.isEdit ? "Update" : "Add"}
                     </Button>
                 </div>
             }>
-                <form className="space-y-4" onSubmit={handleAddPermissionSubmit} id="add-permission-form">
+                <div className="space-y-4">
                     <div>
                         <label htmlFor="user">
                             User
@@ -287,7 +282,7 @@ export default function PermissionForm(props: PermissionFormPropsType) {
                         </div>
                     </div>
 
-                </form>
+                </div>
             </Modal>
         </>
     )

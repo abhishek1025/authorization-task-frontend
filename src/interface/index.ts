@@ -17,8 +17,23 @@ export type OperationType = {
 };
 
 
-// Define the main user permission type
 export interface PermissionsTableItem extends UserType {
   resource: string;
   operations: OperationType[];
+}
+
+
+export type PermissionFormState = {
+  userId: string;
+  resource: string;
+  permissions: {
+    id: string;
+    type: "new" | "delete" | "existing";
+  }[];
+  existingPermissions: string[];
+}
+
+export type PermissionFormPropsType = {
+  isEdit: boolean,
+  initialData: PermissionFormState
 }

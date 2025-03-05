@@ -3,7 +3,7 @@
 import {Checkbox, Table} from "antd";
 import {OperationType, PermissionsTableItem} from "@/interface";
 import { v4 as uuidv4 } from "uuid";
-import {PermissionForm} from "@/components/permission/index";
+import PermissionForm from "./PermissionForm";
 
 export default function PermissionTable(props: { dataSource: PermissionsTableItem[] }) {
 
@@ -54,14 +54,13 @@ export default function PermissionTable(props: { dataSource: PermissionsTableIte
         {
             title: 'Action',
             dataIndex: '',
-            key: 'action',
             render: (_: any, record: PermissionsTableItem) => (
                 <PermissionForm initialData={{
                     userId: record.id,
                     resource: record.resource,
                     permissions: record.operations.map((i) => ({id: i.id.toString(), type: "existing"})),
                     existingPermissions: record.operations.map((i) => i.id.toString())
-                }} isEdit={true} />
+                }} isEdit={true} key={uuidv4()} />
             )
         }
 
@@ -70,7 +69,7 @@ export default function PermissionTable(props: { dataSource: PermissionsTableIte
     return <Table
         dataSource={props.dataSource}
         columns={columns}
-        rowKey={uuidv4()}
+        rowKey={(record) => record.id}
         bordered
         pagination={false}
     />
