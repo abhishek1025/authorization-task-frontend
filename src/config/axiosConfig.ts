@@ -32,10 +32,14 @@ export default class AxiosInstanceNew {
     instance.interceptors.response.use(
       response => response,
       error => {
-        console.log(error)
         if (error.code === 'ERR_NETWORK') {
           error.message = 'Server unavailable. Please try again later.';
         }
+
+        if(error.status === 403){
+          error.message = 'Forbidden to perform this action';
+        }
+
         return Promise.reject(error);
       }
     );

@@ -2,11 +2,11 @@
 
 import {FormEvent, useEffect, useState} from "react";
 import {Button, Checkbox, CheckboxChangeEvent, Modal, Select} from "antd";
-import {clientDeleteRequest, clientGetRequest, clientPostRequest} from "@/utils";
-import {OperationType, UserType} from "@/interface";
+import {clientDeleteRequest, clientPostRequest} from "@/utils";
 import {v4 as uuidv4} from "uuid";
 import {toast} from "sonner";
 import {useRouter} from "next/navigation";
+import {useFetchAllOperations, useFetchAllResources, useFetchAllUsers} from "@/hooks";
 
 type PermissionFormState = {
     userId: string;
@@ -32,12 +32,11 @@ export default function PermissionForm(props: PermissionFormPropsType) {
         userId: '',
         existingPermissions: []
     }
-
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [users, setUsers] = useState<UserType[]>([]);
-    const [resources, setResources] = useState<string[]>([]);
-    const [operations, setOperations] = useState<OperationType[]>([]);
     const [permissionFormState, setPermissionFormState] = useState<PermissionFormState>(emptyFormState);
+    const {users} = useFetchAllUsers();
+    const {operations} = useFetchAllOperations();
+    const {resources} = useFetchAllResources();
 
     const router = useRouter();
 
@@ -49,43 +48,6 @@ export default function PermissionForm(props: PermissionFormPropsType) {
         setIsModalOpen(false);
     };
 
-    const fetchUsers = async () => {
-
-        const response = await clientGetRequest({
-            endpoint: '/users',
-        });
-
-        if (response.ok) {
-            setUsers(response.data);
-            return;
-        }
-    }
-
-    const fetchResources = async () => {
-
-        const response = await clientGetRequest({
-            endpoint: '/resources',
-        });
-
-        if (response.ok) {
-            setResources(response.data);
-            return;
-        }
-    }
-
-    const fetchOperations = async () => {
-
-        const response = await clientGetRequest({
-            endpoint: '/operations',
-        });
-
-        if (response.ok) {
-            setOperations(response.data);
-            return;
-        }
-    }
-
-
     const handlePermissionCheckBoxChange = (e: CheckboxChangeEvent) => {
         const isChecked = e.target.checked;
         const value = e.target.value
@@ -93,14 +55,14 @@ export default function PermissionForm(props: PermissionFormPropsType) {
         if (isChecked) {
 
             if (!permissionFormState.existingPermissions.includes(value)) {
-                    setPermissionFormState((prevState) => {
-                        return {
-                            ...prevState,
-                            permissions: [...prevState.permissions, {
-                                id: value, type: "new"
-                            }]
-                        };
-                    })
+                setPermissionFormState((prevState) => {
+                    return {
+                        ...prevState,
+                        permissions: [...prevState.permissions, {
+                            id: value, type: "new"
+                        }]
+                    };
+                })
                 return;
             }
 
@@ -108,7 +70,7 @@ export default function PermissionForm(props: PermissionFormPropsType) {
                 return {
                     ...prevState,
                     permissions: prevState.permissions.map((el) => {
-                        if(el.id === value){
+                        if (el.id === value) {
                             return {
                                 ...el,
                                 type: "existing"
@@ -165,12 +127,11 @@ export default function PermissionForm(props: PermissionFormPropsType) {
             const {userId, resource} = permissionFormState;
 
 
-
             for (const permission of permissionFormState.permissions) {
 
-                if(permission.type === "existing") continue;
+                if (permission.type === "existing") continue;
 
-                if(permission.type === "new") {
+                if (permission.type === "new") {
                     res = await clientPostRequest({
                         endpoint: '/permissions',
                         data: {
@@ -181,7 +142,7 @@ export default function PermissionForm(props: PermissionFormPropsType) {
                     })
                 }
 
-                if(permission.type === "delete") {
+                if (permission.type === "delete") {
                     res = await clientDeleteRequest({
                         endpoint: `/permissions/delete/${userId}/${resource}/${permission.id}`,
                     })
@@ -199,16 +160,13 @@ export default function PermissionForm(props: PermissionFormPropsType) {
                 }
             }
 
+
+
             if (isSuccess) {
                 toast.success(props.isEdit ? "Permission successfully updated!" : "Permission successfully added!");
 
                 setPermissionFormState(emptyFormState)
-
-                handleCancel();
-
                 router.push("/permissions");
-
-                return;
             }
 
         } catch (e) {
@@ -216,10 +174,12 @@ export default function PermissionForm(props: PermissionFormPropsType) {
             if (e instanceof Error) {
                 toast.error(e.message);
             }
+        } finally {
+            handleCancel();
         }
     }
 
-    const isChecked = (id: string)=> {
+    const isChecked = (id: string) => {
 
         const isPermissionExists = permissionFormState.permissions.find((el) => {
             return el.type !== "delete" && el.id === id;
@@ -229,26 +189,10 @@ export default function PermissionForm(props: PermissionFormPropsType) {
     }
 
     useEffect(() => {
-
-        const fetchAllItemsToAddPermssions = async () => {
-
-            await Promise.all([
-                fetchOperations(),
-                fetchUsers(),
-                fetchResources()
-            ])
-        }
-
-        fetchAllItemsToAddPermssions()
-
-    }, []);
-
-    useEffect(() => {
-        if(props.initialData){
-            setPermissionFormState(props.initialData);
+        if (props.initialData) {
+            setPermissionFormState({...props.initialData});
         }
     }, [props.initialData]);
-
 
 
     return (

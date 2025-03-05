@@ -41,10 +41,10 @@ export default function NavBarAndFooter({children}:{children: JSX.Element}) {
 
                     </div>
                     :
-                    <div>
+                    <div className="flex gap-x-4 items-center">
                         <div>
                             <Link href='/sign-in'>
-                                <Button>Sign In</Button>
+                                <Button  type="primary" >Sign In</Button>
                             </Link>
                         </div>
 
